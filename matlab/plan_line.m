@@ -15,7 +15,7 @@ if nargin < 4, n = 60; end
 T0 = forward_kinematics(theta0);
 p0 = T0(1:3, 4)';
 phi0 = mod(sum(theta0(2:4)) + 180, 360) - 180;
-dphi = mod(phi_end - phi0 + 180, 360) - 180;       % the short way round
+dphi = mod(phi_end - phi0 + 180, 360) - 180;       % smallest turn, e.g. 170 to -170 is +20 deg
 if theta0(3) < 0, elbow = 'up'; else, elbow = 'down'; end
 
 s = linspace(0, 1, n);

@@ -94,7 +94,6 @@ ws = get_param(model, 'ModelWorkspace');
 ws.FileName = 'robot_arm_data.m';      % without the folder, the model still remembers this name
 ws.DataSource = 'Model File';
 delete('robot_arm_data.m');
-set_param(model, 'Creator', 'MohammadMahdi Faraji', 'ModifiedByFormat', 'MohammadMahdi Faraji');
 save_system(model);
 fprintf('saved %s.slx\n', model);
 

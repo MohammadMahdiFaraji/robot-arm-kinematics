@@ -2,7 +2,7 @@
 
 The first version of this project was a course project: a SolidWorks arm, a Simscape model exported from it, and a GUIDE window with sliders. Those original files are kept in `legacy/original_course_submission/`, so the two versions can be compared.
 
-When the project was opened again for this repository, the original files were checked one by one against the 3D model. The window looked fine, but several numbers did not match the arm. This is a bit like a map with the right roads and the wrong distances: it looks correct until you try to drive with it. The list below says what was wrong and how the new version handles it.
+When the project was opened again for this repository, the original files were checked one by one against the 3D model. The window looked fine, but several numbers did not match the arm. The list below says what was wrong and how the new version handles it.
 
 ## Kinematics
 
@@ -43,6 +43,7 @@ Some things are new:
 - a red trace of the tool tip path
 - a warning when the sliders put the arm in a pose `check_pose.m` does not allow
 - one button to start and stop the Simscape model, which then follows every move made in the window
+- a short demo (Play demo button, or `click_to_fast_start` in the main folder) and an "About this project" tab
 
 ## New files
 

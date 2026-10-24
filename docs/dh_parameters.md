@@ -1,8 +1,8 @@
 # Where the DH table comes from
 
-The Denavit-Hartenberg (DH) table is a short recipe that tells you how to walk from the floor to the tool tip: go up so far, turn this way, go forward so far, and so on, one line per joint. If one number in the recipe is wrong, every point you compute with it lands in the wrong place. This page shows where each number of the table comes from, so anyone with the SolidWorks files can check it.
+The Denavit-Hartenberg (DH) table describes the arm with four numbers per joint. If one of them is wrong, every point computed with it lands in the wrong place. This page shows where each number of the table comes from, so anyone with the SolidWorks files can check it.
 
-All numbers were read from `simulink/Assem1.xml`. Simscape Multibody Link writes this file when it exports the assembly. It lists where each part sits and every mate (the "glue" between two parts) in the part's own coordinates. Lengths are in mm, angles in degrees.
+All numbers were read from `simulink/Assem1.xml`. Simscape Multibody Link writes this file when it exports the assembly. It lists where each part sits and every mate (a constraint between two parts) in the part's own coordinates. Lengths are in mm, angles in degrees.
 
 ## The table
 
@@ -35,7 +35,7 @@ The bend angle, `atan2(145, 427.455) = 18.738` degrees, comes back later in the 
 
 **a4 = 195.** The origin of `Part5` lies on the joint 4 axis, and the far end of the part is at local x = 195 mm. So the tool tip is 195 mm from the last joint.
 
-**d4 = 10.** Not every link sits in the same vertical plane. Seen from above, the parts are stacked side by side along the joint axes, a little like the blades of a pocket knife. Adding up these sideways steps, the tool tip ends 10.0 mm to the side of the plane that goes through the base axis. All the joint 2, 3 and 4 axes are parallel, so this sideways offset can go into a single `d`. It is put into d4, so that the last frame sits exactly on the tool tip.
+**d4 = 10.** Not every link sits in the same vertical plane. Seen from above, the parts are stacked side by side along the joint axes. Adding up these sideways steps, the tool tip ends 10.0 mm to the side of the plane that goes through the base axis. All the joint 2, 3 and 4 axes are parallel, so this sideways offset can go into a single `d`. It is put into d4, so that the last frame sits exactly on the tool tip.
 
 The first version of the project left out this 10 mm. The inverse kinematics has to take it into account: seen from above, the arm points slightly past the target (`theta1 = atan2(y, x) + atan2(10, r)`).
 

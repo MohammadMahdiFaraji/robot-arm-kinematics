@@ -24,7 +24,7 @@ p.limits = [-180 180;
 p.base_size = [280 280;
                160 630];
 
-% a comfortable starting pose
+% home pose: the arm a little bent and the tool level
 p.home = [0 45 -15 -30];
 
 % The pose in which the arm was drawn in SolidWorks
@@ -33,7 +33,7 @@ p.cad_pose = [-2.928 47.676 -13.256 -33.193];
 % In the Simulink model every joint measures its angle from the frames of the CAD mates,
 % not from the DH zero. This line converts a DH angle to the angle of the model joint:
 %   q = sim_sign .* theta + sim_offset
-% (link 3 is bent by 18.738 deg, that is where the odd offsets come from)
+% (link 3 is bent by 18.738 deg, so the offsets of joints 3 and 4 are not round numbers)
 p.sim_sign   = [1 1 -1 -1];
 p.sim_offset = [180 0 -161.262 -18.738];
 end

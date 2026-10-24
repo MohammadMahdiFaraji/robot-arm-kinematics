@@ -45,8 +45,8 @@ pose = struct();
 for i = 0:list.getLength - 1
     node = list.item(i);
     uid = char(node.getAttribute('uid'));
-    R = str2num(char(node.getElementsByTagName('Rotation').item(0).getTextContent)); %#ok<ST2NM>
-    t = str2num(char(node.getElementsByTagName('Translation').item(0).getTextContent)); %#ok<ST2NM>
+    R = sscanf(char(node.getElementsByTagName('Rotation').item(0).getTextContent), '%f');
+    t = sscanf(char(node.getElementsByTagName('Translation').item(0).getTextContent), '%f');
     pose.(matlab.lang.makeValidName(uid)).R = reshape(R, 3, 3)';   % the file lists the rows
     pose.(matlab.lang.makeValidName(uid)).t = t(:);
 end

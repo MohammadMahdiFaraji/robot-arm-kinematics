@@ -23,7 +23,7 @@ side_start = size(path, 1);
 for k = 1:4
     [seg, ok, msg] = plan_line(path(end, :), corners(k + 1, :), phi, 40);
     if ~ok, error('side %d: %s', k, msg); end
-    path = [path; seg(2:end, :)]; %#ok<AGROW>
+    path = [path; seg(2:end, :)];
 end
 
 % how straight are the sides? distance of every tip point from its side of the square
@@ -74,7 +74,7 @@ for k = 1:size(path, 1)
     end
     if mod(k, 2) == 1 || k == size(path, 1)
         f = getframe(fig);
-        frames{end + 1} = f.cdata; %#ok<SAGROW>
+        frames{end + 1} = f.cdata;
     end
 end
 close(fig);

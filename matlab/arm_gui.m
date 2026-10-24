@@ -1,11 +1,13 @@
-function fig = arm_gui()
+function fig = arm_gui(start_demo)
 % ARM_GUI  Window for moving the arm.
 %   The sliders set the joint angles (forward kinematics). The panel on the right takes
 %   a target point and finds the joint angles for it (inverse kinematics).
 %   "Run Simulink model" starts simulink/robot_arm.slx, and from then on the Simscape
 %   model follows every move made in this window.
+%   arm_gui(true) plays the demo as soon as the window is open (click_to_fast_start.m).
 %
 %   MohammadMahdi Faraji, mmyasharfaraji@gmail.com
+if nargin < 1, start_demo = false; end
 here = fileparts(mfilename('fullpath'));
 addpath(fullfile(here, '..', 'simulink'));
 p = robot_params();
@@ -54,7 +56,7 @@ sliders = matlab.ui.control.Slider.empty;
 fields = matlab.ui.control.NumericEditField.empty;
 ticks = {-180:90:180, 0:45:180, [-150 -100 -50 0 75], [-145 -100 -50 0 75]};
 for i = 1:4
-    uilabel(jg, 'Text', sprintf('%c%d', 952, i), 'FontSize', 14);
+    uilabel(jg, 'Text', sprintf('θ%d', i), 'FontSize', 14);
     sliders(i) = uislider(jg, 'Limits', p.limits(i, :), 'Value', theta(i), ...
         'MajorTicks', ticks{i}, 'MinorTicks', [], ...
         'ValueChangingFcn', @(s, e) set_joint(i, e.Value, s), ...
@@ -76,7 +78,7 @@ kg.RowHeight = {22, 22, 26, '1x'};
 uilabel(kg, 'Text', 'x (mm)');  ex = uieditfield(kg, 'numeric', 'Value', 700);
 uilabel(kg, 'Text', 'y (mm)');  ey = uieditfield(kg, 'numeric', 'Value', 300);
 uilabel(kg, 'Text', 'z (mm)');  ez = uieditfield(kg, 'numeric', 'Value', 400);
-uilabel(kg, 'Text', sprintf('%c (deg)', 966));  ephi = uieditfield(kg, 'numeric', 'Value', -90);
+uilabel(kg, 'Text', 'φ (deg)');  ephi = uieditfield(kg, 'numeric', 'Value', -90);
 uilabel(kg, 'Text', 'elbow');   elbow_box = uidropdown(kg, 'Items', {'up', 'down'});
 uilabel(kg, 'Text', 'path');    path_box = uidropdown(kg, 'Items', {'joint space', 'straight line'});
 move_btn = uibutton(kg, 'Text', 'Move', 'ButtonPushedFcn', @(~, ~) move_to_target());
@@ -89,7 +91,7 @@ info = uitabgroup(side);
 about_tab = uitab(info, 'Title', 'About this project');
 help_tab = uitab(info, 'Title', 'How to use');
 uitextarea(uigridlayout(about_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off', 'Value', {
-    'From a 3D drawing to a moving arm, with a check at every step:'
+    'How this project was made:'
     ['1. SolidWorks: I drew the five parts and joined them in an assembly. The shape and ' ...
      'the dimensions come from searching online, changed while drawing.']
     '2. Simscape Multibody Link exported the assembly (an XML file and STEP files).'
@@ -104,7 +106,8 @@ uitextarea(uigridlayout(about_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'of
      'was rebuilt so that every number comes from the CAD file.']
     });
 uitextarea(uigridlayout(help_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off', 'Value', {
-    [sprintf('%c', 966) ' = angle of the tool from the horizontal: 0 is level, -90 is pointing down.']
+    'Play demo: the arm goes to a point, then draws a square on a table with straight lines.'
+    'φ = angle of the tool from the horizontal: 0 is level, -90 is pointing down.'
     'Joint space: every joint turns evenly, and the tip moves on a curve.'
     'Straight line: inverse kinematics at 60 points of the line, so the tip moves straight.'
     'Elbow up or down: the two ways the arm can reach the same point.'
@@ -112,15 +115,17 @@ uitextarea(uigridlayout(help_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off
     });
 
 % buttons under the 3D view
-bg = uigridlayout(left, [1 4], 'Padding', [0 0 0 0]);
+bg = uigridlayout(left, [1 5], 'Padding', [0 0 0 0]);
 bg.Layout.Row = 2;
-bg.ColumnWidth = {110, 170, 110, '1x'};
+bg.ColumnWidth = {110, 170, 110, 110, '1x'};
 uibutton(bg, 'Text', 'Home', 'ButtonPushedFcn', @(~, ~) go_home());
 sim_btn = uibutton(bg, 'state', 'Text', 'Run Simulink model', ...
     'ValueChangedFcn', @(s, ~) simulink_on_off(s.Value));
 uibutton(bg, 'Text', 'Clear path', 'ButtonPushedFcn', @(~, ~) clear_trail());
+uibutton(bg, 'Text', 'Play demo', 'ButtonPushedFcn', @(~, ~) play_demo());
 
 show();
+if start_demo, play_demo(); end
 
 
     % ---------------- callbacks and helpers (they share the variables above)
@@ -147,8 +152,8 @@ show();
             note = ['not allowed: ' pose_msg];
             tip_label.FontColor = [0.75 0 0];
         end
-        tip_label.Text = sprintf('x = %7.1f  y = %7.1f  z = %7.1f mm    %c = %6.1f deg  elbow %s\n%s', ...
-            T(1:3, 4), 966, phi, elbow, note);
+        tip_label.Text = sprintf('x = %7.1f  y = %7.1f  z = %7.1f mm    φ = %6.1f deg  elbow %s\n%s', ...
+            T(1:3, 4), phi, elbow, note);
         for k = 1:4
             if ~isequal(sliders(k), source), sliders(k).Value = theta(k); end
             if ~isequal(fields(k), source), fields(k).Value = theta(k); end
@@ -176,6 +181,7 @@ show();
             return
         end
         animate(path);
+        if ~isvalid(fig), return; end           % the window was closed during the move
         status.Text = sprintf('Done. Joint angles: %.1f, %.1f, %.1f, %.1f deg', theta);
         if strcmp(path_box.Value, 'straight line')
             status.Text = [status.Text ' (on a straight line the elbow stays as it was)'];
@@ -186,6 +192,28 @@ show();
     function go_home()
         if busy, return; end
         animate(joint_path(theta, p.home));
+    end
+
+    function play_demo()
+        % the same as typing the points and pressing Move: first two joint space moves,
+        % then a square on a table (z = 300) with straight lines, tool pointing down
+        if busy, return; end
+        targets = [700 300 400; 600 -200 300; 600 200 300; 850 200 300; 850 -200 300; 600 -200 300];
+        for k = 1:size(targets, 1)
+            if ~isvalid(fig), return; end
+            if k <= 2
+                path_box.Value = 'joint space';
+            else
+                path_box.Value = 'straight line';
+            end
+            if k == 3, clear_trail(); end       % only the square stays red
+            ex.Value = targets(k, 1);  ey.Value = targets(k, 2);  ez.Value = targets(k, 3);
+            ephi.Value = -90;  elbow_box.Value = 'up';
+            move_to_target();
+            pause(0.4);
+        end
+        if ~isvalid(fig), return; end
+        status.Text = 'Demo finished: the tip drew a square with straight lines. Now try it yourself.';
     end
 
     function path = joint_path(from, to)
@@ -228,7 +256,7 @@ show();
             for k = 1:4
                 set_param([model '/theta' num2str(k)], 'Value', num2str(theta(k), 8));
             end
-            % run without end, at the speed of the clock on the wall
+            % no stop time, and pacing on so the model runs in real time
             set_param(model, 'StopTime', 'inf', 'EnablePacing', 'on', 'PacingRate', '1');
             set_param(model, 'SimulationCommand', 'start');
         else
