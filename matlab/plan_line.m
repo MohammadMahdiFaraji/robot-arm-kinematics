@@ -8,6 +8,8 @@ function [path, ok, msg] = plan_line(theta0, target, phi_end, n)
 %   path    : n x 4 joint angles, one row per point
 % Every point of the line is solved with inverse_kinematics. The elbow stays on the
 % side where it starts, otherwise the arm would flip over in the middle of the line.
+%
+% MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 if nargin < 4, n = 60; end
 
 T0 = forward_kinematics(theta0);

@@ -4,6 +4,8 @@ function fig = arm_gui()
 %   a target point and finds the joint angles for it (inverse kinematics).
 %   "Run Simulink model" starts simulink/robot_arm.slx, and from then on the Simscape
 %   model follows every move made in this window.
+%
+%   MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 here = fileparts(mfilename('fullpath'));
 addpath(fullfile(here, '..', 'simulink'));
 p = robot_params();
@@ -14,12 +16,22 @@ theta = p.home;
 busy = false;                   % true while the arm is moving, the sliders wait
 
 % ---------------- window
-fig = uifigure('Name', '4-DOF robot arm', 'Position', [60 40 1200 760], ...
+fig = uifigure('Name', '4-DOF robot arm  (MohammadMahdi Faraji)', 'Position', [60 40 1200 800], ...
     'CloseRequestFcn', @(~, ~) close_window());
-main = uigridlayout(fig, [1 2]);
+main = uigridlayout(fig, [2 2]);
 main.ColumnWidth = {'1x', 390};
+main.RowHeight = {48, '1x'};
+
+% title bar with my name and email
+top = uigridlayout(main, [1 2], 'BackgroundColor', [0.13 0.24 0.40], 'Padding', [16 6 16 6]);
+top.Layout.Row = 1;  top.Layout.Column = [1 2];
+uilabel(top, 'Text', '4-DOF robot arm: forward and inverse kinematics', ...
+    'FontSize', 18, 'FontWeight', 'bold', 'FontColor', [1 1 1]);
+uilabel(top, 'Text', 'MohammadMahdi Faraji   |   mmyasharfaraji@gmail.com', ...
+    'FontSize', 15, 'FontColor', [1 1 1], 'HorizontalAlignment', 'right');
 
 ax = uiaxes(main);
+ax.Layout.Row = 2;  ax.Layout.Column = 1;
 patch(ax, [-1200 1200 1200 -1200], [-1200 -1200 1200 1200], [0 0 0 0], [0.94 0.94 0.94], ...
     'EdgeColor', 'none', 'FaceLighting', 'none');                   % floor
 h = draw_arm(ax, parts, theta);
@@ -28,6 +40,7 @@ trail = plot3(ax, nan, nan, nan, 'r-', 'LineWidth', 1.5);
 target_mark = plot3(ax, nan, nan, nan, 'kx', 'MarkerSize', 14, 'LineWidth', 2);
 
 side = uigridlayout(main, [5 1]);
+side.Layout.Row = 2;  side.Layout.Column = 2;
 side.RowHeight = {220, 92, 240, 40, '1x'};
 
 % joint sliders

@@ -4,6 +4,8 @@
 %   3. inverse_kinematics -> forward_kinematics round trip for random poses
 %   4. targets that must be refused
 % The output is also saved to results/kinematics_check.txt
+%
+% MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 
 here = fileparts(mfilename('fullpath'));
 log_file = fullfile(here, '..', 'results', 'kinematics_check.txt');

@@ -4,6 +4,8 @@ function p = robot_params()
 %
 % The lengths were measured between the joint axes of the SolidWorks assembly
 % (cad/Assem1.SLDASM). docs/dh_parameters.md explains where each number comes from.
+%
+% MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 
 % DH table (standard convention), one column per link
 %            link 1   link 2   link 3   link 4 (tool)

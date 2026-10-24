@@ -6,6 +6,8 @@
 %   3. a base frame and a tool tip frame are added, with a sensor between them,
 %      so the model itself reports where the tip is (to check forward_kinematics.m)
 % Run it again if the arm is exported from SolidWorks again.
+%
+% MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 
 here = fileparts(mfilename('fullpath'));
 cd(here);

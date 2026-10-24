@@ -8,6 +8,8 @@ function [theta, ok, msg] = inverse_kinematics(pos, phi, elbow)
 %   theta : joint angles in degrees
 %   ok    : false if the point is out of reach, needs a joint beyond its limit,
 %           or would push the arm into the floor or its own base. msg says which.
+%
+%   MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 if nargin < 2, phi = 0; end
 if nargin < 3, elbow = 'up'; end
 

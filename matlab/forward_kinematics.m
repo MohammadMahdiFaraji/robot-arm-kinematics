@@ -5,6 +5,8 @@ function [T, points, frames] = forward_kinematics(theta)
 %   T      : 4x4 homogeneous matrix of the tool tip in the base frame (mm)
 %   points : 3x5 positions of the base, joints 2, 3, 4 and the tool tip (for plots)
 %   frames : 4x4x5 all DH frames, frames(:,:,1) is the base and frames(:,:,5) the tool
+%
+%   MohammadMahdi Faraji, mmyasharfaraji@gmail.com
 p = robot_params();
 
 T = eye(4);
