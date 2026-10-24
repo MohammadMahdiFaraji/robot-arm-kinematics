@@ -9,7 +9,7 @@ You give the arm a point in space, for example "30 cm above the table, 80 cm in 
 
 ## Quick start
 
-Download the repository (Code > Download ZIP), unzip it and double-click **`click_to_fast_start.bat`** (Windows, MATLAB needed). MATLAB starts, and the window of the arm opens with a short demo: the arm goes to a point, then draws the square above. After that you can move it yourself.
+Download the repository (Code > Download ZIP), unzip it and double-click **`click_to_fast_start.bat`** (Windows, MATLAB needed). MATLAB starts, and then the window of the arm opens.
 
 On other systems, open `click_to_fast_start.m` in MATLAB and press Run. MATLAB can take a minute to start, and Windows may ask once before it runs a file from the internet.
 
@@ -88,7 +88,7 @@ Then `check_pose.m` makes sure the answer is allowed: every joint stays within i
 If you only interpolate the angles, the tip moves on a curve. For a straight line, `plan_line.m` solves the inverse kinematics at 40 to 60 points on the line. It stops if a joint would jump between two neighbouring points, which happens near a singular pose (for example right above the base axis).
 
 <p align="center"><img src="results/figures/line_demo_joints.png" width="85%"></p>
-<p align="center"><sub>Joint angles during the demo: a joint space move to the first corner, then the four sides. To keep the tip on a straight line, the angles have to change in a non-linear way.</sub></p>
+<p align="center"><sub>Joint angles while drawing the square: a joint space move to the first corner, then the four sides. To keep the tip on a straight line, the angles have to change in a non-linear way.</sub></p>
 
 ### 5. The Simscape model
 
@@ -104,11 +104,12 @@ If you only interpolate the angles, the tip moves on a curve. For a straight lin
 - move each joint with a slider or type its angle; the tool tip position is shown below
 - type a target point and a tool angle, choose elbow up or down, and press Move
 - choose a joint space path (curved) or a straight line; the red line shows the path of the tip
-- press "Run Simulink model": the Simscape model starts in Mechanics Explorer and follows every move made in the window
-- press "Play demo" to see the arm go to a point and draw a square with straight lines
+- press Stop to hold the arm where it is, even in the middle of a move, and Start to go on to the same target
+- press Home to go back to the home pose from any state, and Reset view after zooming or turning the 3D view
+- turn on the "Simscape model" switch: the Simscape model starts in Mechanics Explorer and follows every move made in the window (the first start takes about half a minute)
 - read "About this project" at the bottom right: the whole project, from SolidWorks to the checks, in seven short steps
 
-If a target can't be reached, the window says why, for example "joint 3 would need -158.9 deg (limit -150 to 75)".
+If a target can't be reached, the window says why, for example "joint 3 would need -158.9 deg (limit -150 to 75)". A joint space move is also refused when both ends are fine but a pose on the way would go under the floor or into the base.
 
 ## Workspace
 
@@ -123,7 +124,7 @@ You need MATLAB (tested with R2024b). Simscape Multibody is only needed for the 
 
 ```matlab
 cd matlab
-arm_gui            % the window (arm_gui(true) plays the demo first)
+arm_gui            % the window
 check_kinematics   % all the checks, results/kinematics_check.txt
 plot_workspace     % results/figures/workspace.png
 line_demo          % the square demo, media/line_demo.gif
@@ -134,7 +135,7 @@ The model in `simulink/robot_arm.slx` is ready to open. After changing the CAD, 
 ## Repository layout
 
 ```
-click_to_fast_start.bat / .m   open the window and play the demo
+click_to_fast_start.bat / .m   open the window with one click
 cad/            SolidWorks parts and assembly, cad/stl/ the meshes used for drawing
 simulink/       the SolidWorks export (Assem1.xml + STEP), make_model.m, robot_arm.slx
 matlab/         kinematics, checks, demos and the GUI

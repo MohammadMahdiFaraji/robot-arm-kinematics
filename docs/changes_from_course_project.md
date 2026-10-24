@@ -42,8 +42,10 @@ Some things are new:
 - a straight-line mode in the inverse kinematics panel
 - a red trace of the tool tip path
 - a warning when the sliders put the arm in a pose `check_pose.m` does not allow
-- one button to start and stop the Simscape model, which then follows every move made in the window
-- a short demo (Play demo button, or `click_to_fast_start` in the main folder) and an "About this project" tab
+- a switch to start and stop the Simscape model, which then follows every move made in the window
+- Stop holds the arm where it is, even in the middle of a move, Start goes on with that move, and Home works from any state
+- a check of every pose on the way of a joint space move, not only of its two ends
+- `click_to_fast_start` in the main folder, which opens the window with one click, and an "About this project" tab
 
 ## New files
 

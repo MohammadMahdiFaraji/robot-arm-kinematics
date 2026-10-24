@@ -1,5 +1,5 @@
 @echo off
-rem Click to fast start: opens MATLAB, then the window of the arm with a short demo.
+rem Click to fast start: opens MATLAB, then the window of the arm.
 rem MATLAB itself can take a minute to start.
 
 set "ML=matlab"

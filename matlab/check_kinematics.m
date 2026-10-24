@@ -12,7 +12,7 @@ log_file = fullfile(here, '..', 'results', 'kinematics_check.txt');
 if isfile(log_file), delete(log_file); end
 diary(log_file);
 p = robot_params();
-fprintf('Kinematics check, %s\n\n', datestr(now, 'yyyy-mm-dd'));
+fprintf('Kinematics check, %s\n\n', datetime('today', 'Format', 'yyyy-MM-dd'));
 
 % 1. In the CAD file the tool tip is at this point (from Assem1.xml, converted to the base frame)
 cad_tip = [902.279 -56.160 1124.989];

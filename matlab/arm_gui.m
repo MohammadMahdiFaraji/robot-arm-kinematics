@@ -1,24 +1,40 @@
-function fig = arm_gui(start_demo)
+function fig = arm_gui()
 % ARM_GUI  Window for moving the arm.
 %   The sliders set the joint angles (forward kinematics). The panel on the right takes
 %   a target point and finds the joint angles for it (inverse kinematics).
-%   "Run Simulink model" starts simulink/robot_arm.slx, and from then on the Simscape
-%   model follows every move made in this window.
-%   arm_gui(true) plays the demo as soon as the window is open (click_to_fast_start.m).
+%   Buttons under the 3D view:
+%     Home        back to the home pose, from any state (also in the middle of a move)
+%     Reset view  the 3D view as it was when the window opened (after zooming or turning it)
+%     Start       goes on with the move that Stop interrupted
+%     Stop        the arm stops where it is, also in the middle of a move
+%   The switch "Simscape model" runs simulink/robot_arm.slx, and from then on the model
+%   follows every move made in this window.
 %
 %   MohammadMahdi Faraji, mmyasharfaraji@gmail.com
-if nargin < 1, start_demo = false; end
 here = fileparts(mfilename('fullpath'));
 addpath(fullfile(here, '..', 'simulink'));
 p = robot_params();
 parts = load_arm_parts();
 model = 'robot_arm';
 model_loaded_here = false;
+model_settings = {};            % stop time and pacing of the model before this window changed them
+sim_starting = false;
 theta = p.home;
-busy = false;                   % true while the arm is moving, the sliders wait
 
-% ---------------- window
-fig = uifigure('Name', '4-DOF robot arm  (MohammadMahdi Faraji)', 'Position', [40 40 1400 790], ...
+% How the moves work: every command that moves the arm (Move, Home, Start) takes a new
+% number in move_id. The loop that animates a move ends as soon as move_id is not its own
+% number any more, so Stop, Home, a new Move or a slider can always take over.
+move_id = 0;
+moving = false;
+current = [];                   % the move that is running now
+stopped = [];                   % the move that Stop interrupted, Start goes on with it
+
+black = [0 0 0];  green = [0 0.45 0];  red = [0.75 0 0];  orange = [0.75 0.40 0];
+
+% ---------------- window (smaller on small screens)
+scr = get(groot, 'ScreenSize');
+fig = uifigure('Name', '4-DOF robot arm  (MohammadMahdi Faraji)', ...
+    'Position', [40 40 min(1400, scr(3) - 80) min(790, scr(4) - 74)], ...
     'CloseRequestFcn', @(~, ~) close_window());
 main = uigridlayout(fig, [2 2]);
 main.ColumnWidth = {'1x', 540};
@@ -40,13 +56,14 @@ ax = uiaxes(left);
 patch(ax, [-1200 1200 1200 -1200], [-1200 -1200 1200 1200], [0 0 0 0], [0.94 0.94 0.94], ...
     'EdgeColor', 'none', 'FaceLighting', 'none');                   % floor
 h = draw_arm(ax, parts, theta);
-xlim(ax, [-1200 1200]); ylim(ax, [-1200 1200]); zlim(ax, [0 1700]);
+lamp = findobj(ax, 'Type', 'light');                                % made by draw_arm
 trail = plot3(ax, nan, nan, nan, 'r-', 'LineWidth', 1.5);
 target_mark = plot3(ax, nan, nan, nan, 'kx', 'MarkerSize', 14, 'LineWidth', 2);
+reset_view();
 
-side = uigridlayout(main, [4 1], 'RowSpacing', 8);
+side = uigridlayout(main, [5 1], 'RowSpacing', 8, 'Padding', [0 0 0 0]);
 side.Layout.Row = 2;  side.Layout.Column = 2;
-side.RowHeight = {205, 72, 176, '1x'};
+side.RowHeight = {205, 72, 168, 26, '1x'};
 
 % joint sliders
 jp = uipanel(side, 'Title', 'Joint angles (deg)');
@@ -79,12 +96,22 @@ uilabel(kg, 'Text', 'x (mm)');  ex = uieditfield(kg, 'numeric', 'Value', 700);
 uilabel(kg, 'Text', 'y (mm)');  ey = uieditfield(kg, 'numeric', 'Value', 300);
 uilabel(kg, 'Text', 'z (mm)');  ez = uieditfield(kg, 'numeric', 'Value', 400);
 uilabel(kg, 'Text', 'φ (deg)');  ephi = uieditfield(kg, 'numeric', 'Value', -90);
-uilabel(kg, 'Text', 'elbow');   elbow_box = uidropdown(kg, 'Items', {'up', 'down'});
-uilabel(kg, 'Text', 'path');    path_box = uidropdown(kg, 'Items', {'joint space', 'straight line'});
+uilabel(kg, 'Text', 'elbow');   elbow_box = uidropdown(kg, 'Items', {'up', 'down'}, ...
+    'Tooltip', 'Only for joint space moves. On a straight line the elbow stays as it is.');
+uilabel(kg, 'Text', 'path');    path_box = uidropdown(kg, 'Items', {'joint space', 'straight line'}, ...
+    'ValueChangedFcn', @(s, ~) set(elbow_box, 'Enable', strcmp(s.Value, 'joint space')));
 move_btn = uibutton(kg, 'Text', 'Move', 'ButtonPushedFcn', @(~, ~) move_to_target());
 move_btn.Layout.Row = 3;  move_btn.Layout.Column = [1 6];
 status = uilabel(kg, 'Text', 'Move the sliders, or type a point and press Move.', 'WordWrap', 'on');
 status.Layout.Row = 4;  status.Layout.Column = [1 6];
+
+% Simscape model on / off
+sg = uigridlayout(side, [1 3], 'Padding', [8 0 8 0]);
+sg.ColumnWidth = {180, 90, '1x'};
+uilabel(sg, 'Text', 'Simscape model (Simulink)', 'FontWeight', 'bold');
+sim_switch = uiswitch(sg, 'Items', {'Off', 'On'}, ...
+    'ValueChangedFcn', @(s, ~) simulink_on_off(strcmp(s.Value, 'On')));
+uilabel(sg, 'Text', 'opens in Mechanics Explorer', 'FontColor', [0.4 0.4 0.4]);
 
 % what this project is, step by step, and how to use the window
 info = uitabgroup(side);
@@ -100,39 +127,46 @@ uitextarea(uigridlayout(about_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'of
     ['5. Inverse kinematics: target point to joint angles, solved with geometry (Go to a point). ' ...
      'Targets the arm cannot reach safely are refused, with the reason.']
     ['6. Simscape: smimport built a Simulink model from the same export. ' ...
-     '"Run Simulink model" starts it, and it follows this window.']
+     'The switch "Simscape model" runs it, and it follows this window.']
     '7. Checks: the CAD file, the Simscape sensor and the math agree within 0.01 mm.'
     ['The arm in the plot is drawn with the real CAD parts. It started as a course project and ' ...
      'was rebuilt so that every number comes from the CAD file.']
     });
 uitextarea(uigridlayout(help_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off', 'Value', {
-    'Play demo: the arm goes to a point, then draws a square on a table with straight lines.'
+    'Sliders: one joint each. Go to a point: type x, y, z and φ, then press Move.'
     'φ = angle of the tool from the horizontal: 0 is level, -90 is pointing down.'
-    'Joint space: every joint turns evenly, and the tip moves on a curve.'
-    'Straight line: inverse kinematics at 60 points of the line, so the tip moves straight.'
+    'Joint space: every joint turns evenly and the tip moves on a curve. Straight line: inverse kinematics at every step, so the tip moves straight.'
     'Elbow up or down: the two ways the arm can reach the same point.'
-    'Red line: the path of the tip. Drag the 3D view to turn it.'
+    'Stop: the arm stops where it is, also in the middle of a move. Start: it goes on to the same target.'
+    'Home: back to the home pose from any state. Reset view: the 3D view as it was at the start.'
+    'Red line: the path of the tip in the last move. Drag the 3D view to turn it, scroll to zoom.'
     });
 
 % buttons under the 3D view
 bg = uigridlayout(left, [1 5], 'Padding', [0 0 0 0]);
 bg.Layout.Row = 2;
-bg.ColumnWidth = {110, 170, 110, 110, '1x'};
-uibutton(bg, 'Text', 'Home', 'ButtonPushedFcn', @(~, ~) go_home());
-sim_btn = uibutton(bg, 'state', 'Text', 'Run Simulink model', ...
-    'ValueChangedFcn', @(s, ~) simulink_on_off(s.Value));
-uibutton(bg, 'Text', 'Clear path', 'ButtonPushedFcn', @(~, ~) clear_trail());
-uibutton(bg, 'Text', 'Play demo', 'ButtonPushedFcn', @(~, ~) play_demo());
+bg.ColumnWidth = {100, 110, 100, 100, '1x'};
+uibutton(bg, 'Text', 'Home', 'Tooltip', 'Back to the home pose, from any state', ...
+    'ButtonPushedFcn', @(~, ~) go_home());
+uibutton(bg, 'Text', 'Reset view', 'Tooltip', 'The 3D view as it was when the window opened', ...
+    'ButtonPushedFcn', @(~, ~) reset_view());
+start_btn = uibutton(bg, 'Text', 'Start', 'Enable', 'off', 'BackgroundColor', [0.80 0.93 0.80], ...
+    'Tooltip', 'Go on with the move that was stopped', 'ButtonPushedFcn', @(~, ~) go_on());
+stop_btn = uibutton(bg, 'Text', 'Stop', 'Enable', 'off', 'BackgroundColor', [0.97 0.80 0.80], ...
+    'Tooltip', 'Stop the arm where it is', 'ButtonPushedFcn', @(~, ~) stop_move());
 
 show();
-if start_demo, play_demo(); end
 
 
     % ---------------- callbacks and helpers (they share the variables above)
 
     function set_joint(j, value, source)
-        % joint j was moved with its slider or typed in its field
-        if busy, return; end
+        % joint j was moved with its slider or typed in its field.
+        % The sliders take over from a move that is running or was stopped.
+        if moving || ~isempty(stopped)
+            cancel_move();
+            say('The move was cancelled, the sliders move the arm now.', black);
+        end
         theta(j) = value;
         show(source);
     end
@@ -147,10 +181,10 @@ if start_demo, play_demo(); end
         [pose_ok, pose_msg] = check_pose(theta);
         if pose_ok
             note = '';
-            tip_label.FontColor = [0 0 0];
+            tip_label.FontColor = black;
         else
             note = ['not allowed: ' pose_msg];
-            tip_label.FontColor = [0.75 0 0];
+            tip_label.FontColor = red;
         end
         tip_label.Text = sprintf('x = %7.1f  y = %7.1f  z = %7.1f mm    φ = %6.1f deg  elbow %s\n%s', ...
             T(1:3, 4), phi, elbow, note);
@@ -159,109 +193,196 @@ if start_demo, play_demo(); end
             if ~isequal(fields(k), source), fields(k).Value = theta(k); end
         end
         if model_running()
-            for k = 1:4
-                set_param([model '/theta' num2str(k)], 'Value', num2str(theta(k), 8));
-            end
+            send_angles();
+        elseif strcmp(sim_switch.Value, 'On') && ~sim_starting
+            % the model was stopped outside this window, for example in Simulink
+            sim_switch.Value = 'Off';
+            stop_model();
         end
     end
 
     function move_to_target()
-        if busy, return; end
+        % Move button
         target = [ex.Value ey.Value ez.Value];
         set(target_mark, 'XData', target(1), 'YData', target(2), 'ZData', target(3));
-        if strcmp(path_box.Value, 'straight line')
-            [path, ok, msg] = plan_line(theta, target, ephi.Value);
-        else
-            [goal, ok, msg] = inverse_kinematics(target, ephi.Value, elbow_box.Value);
-            if ok, path = joint_path(theta, goal); end
+        m = struct('kind', 'line', 'goal', [], 'target', target, 'phi', ephi.Value, 'name', 'target');
+        if strcmp(path_box.Value, 'joint space')
+            [m.goal, ok, msg] = inverse_kinematics(target, ephi.Value, elbow_box.Value);
+            if ~ok
+                say(['Cannot move there: ' msg '.'], red);
+                return
+            end
+            m.kind = 'joint';
         end
-        if ~ok
-            status.Text = ['Cannot move there: ' msg '.'];
-            status.FontColor = [0.75 0 0];
-            return
-        end
-        animate(path);
-        if ~isvalid(fig), return; end           % the window was closed during the move
-        status.Text = sprintf('Done. Joint angles: %.1f, %.1f, %.1f, %.1f deg', theta);
-        if strcmp(path_box.Value, 'straight line')
-            status.Text = [status.Text ' (on a straight line the elbow stays as it was)'];
-        end
-        status.FontColor = [0 0.45 0];
+        run_move(m, true);
     end
 
     function go_home()
-        if busy, return; end
-        animate(joint_path(theta, p.home));
+        set(target_mark, 'XData', nan, 'YData', nan, 'ZData', nan);
+        run_move(struct('kind', 'joint', 'goal', p.home, 'target', [], 'phi', [], 'name', 'home'), true);
     end
 
-    function play_demo()
-        % the same as typing the points and pressing Move: first two joint space moves,
-        % then a square on a table (z = 300) with straight lines, tool pointing down
-        if busy, return; end
-        targets = [700 300 400; 600 -200 300; 600 200 300; 850 200 300; 850 -200 300; 600 -200 300];
-        for k = 1:size(targets, 1)
-            if ~isvalid(fig), return; end
-            if k <= 2
-                path_box.Value = 'joint space';
-            else
-                path_box.Value = 'straight line';
-            end
-            if k == 3, clear_trail(); end       % only the square stays red
-            ex.Value = targets(k, 1);  ey.Value = targets(k, 2);  ez.Value = targets(k, 3);
-            ephi.Value = -90;  elbow_box.Value = 'up';
-            move_to_target();
-            pause(0.4);
+    function go_on()
+        % Start button
+        if moving || isempty(stopped), return; end
+        run_move(stopped, false);
+    end
+
+    function stop_move()
+        % Stop button: the loop of the move ends at its next step, the arm stays there
+        if ~moving, return; end
+        m = current;
+        cancel_move();
+        stopped = m;
+        set_buttons();
+        say('Stopped. The arm holds this pose. Start goes on to the target, Home goes back home.', orange);
+    end
+
+    function cancel_move()
+        move_id = move_id + 1;
+        moving = false;
+        current = [];
+        stopped = [];
+        set_buttons();
+    end
+
+    function set_buttons()
+        stop_btn.Enable = moving;
+        start_btn.Enable = ~moving && ~isempty(stopped);
+    end
+
+    function run_move(m, new_move)
+        % Plan the path from the pose the arm is in now, then move along it.
+        % new_move is false when Start goes on with a stopped move (the red line is kept).
+        if strcmp(m.kind, 'line')
+            T = forward_kinematics(theta);
+            n = max(10, ceil(norm(m.target - T(1:3, 4)') / 6));        % about 6 mm per step
+            [path, ok, msg] = plan_line(theta, m.target, m.phi, n);
+        else
+            path = joint_path(theta, m.goal);
+            [ok, msg] = path_allowed(path, m);
         end
-        if ~isvalid(fig), return; end
-        status.Text = 'Demo finished: the tip drew a square with straight lines. Now try it yourself.';
+        if ~ok
+            say(['Cannot move there: ' msg '.'], red);
+            return
+        end
+
+        cancel_move();                      % a move that is running or stopped ends here
+        my_id = move_id;
+        moving = true;
+        current = m;
+        set_buttons();
+        if new_move
+            T = forward_kinematics(theta);
+            set(trail, 'XData', T(1, 4), 'YData', T(2, 4), 'ZData', T(3, 4));
+        end
+        if strcmp(m.name, 'home'), say('Going home...', black); else, say('Moving...', black); end
+
+        for k = 2:size(path, 1)
+            theta = path(k, :);
+            show();
+            T = forward_kinematics(theta);
+            set(trail, 'XData', [trail.XData T(1, 4)], 'YData', [trail.YData T(2, 4)], ...
+                'ZData', [trail.ZData T(3, 4)]);
+            drawnow limitrate;
+            pause(0.02);
+            % the window was closed, or Stop, Home, a new move or a slider took over
+            if ~isvalid(fig) || move_id ~= my_id, return; end
+        end
+        drawnow;                            % limitrate may have skipped the last picture
+        if ~isvalid(fig) || move_id ~= my_id, return; end
+        moving = false;
+        current = [];
+        set_buttons();
+        if strcmp(m.name, 'home')
+            say('The arm is at the home pose.', green);
+        else
+            say(sprintf('Done. Joint angles: %.1f, %.1f, %.1f, %.1f deg', theta), green);
+        end
     end
 
     function path = joint_path(from, to)
         % every joint turns at the same time, starting and stopping smoothly
-        s = (1 - cos(pi * linspace(0, 1, 50)')) / 2;
+        % (about 2 deg per step for the joint that turns the most)
+        n = max(15, ceil(max(abs(to - from)) / 2));
+        s = (1 - cos(pi * linspace(0, 1, n)')) / 2;
         path = from + s .* (to - from);
     end
 
-    function animate(path)
-        busy = true;
-        for k = 1:size(path, 1)
-            if ~isvalid(fig), return; end
-            theta = path(k, :);
-            show();
-            T = forward_kinematics(theta);
-            trail.XData(end + 1) = T(1, 4);
-            trail.YData(end + 1) = T(2, 4);
-            trail.ZData(end + 1) = T(3, 4);
-            drawnow limitrate;
-            pause(0.02);
+    function [ok, msg] = path_allowed(path, m)
+        % Both ends of a joint space move can be allowed while a pose in between is not
+        % (the tip dips under the floor). Home is never refused, it is the way back.
+        ok = true;
+        msg = 'ok';
+        if strcmp(m.name, 'home') || ~check_pose(path(1, :)), return; end
+        for k = 2:size(path, 1)
+            [good, why] = check_pose(path(k, :));
+            if ~good
+                ok = false;
+                msg = ['on the way ' why ', try a straight line or the other elbow'];
+                return
+            end
         end
-        busy = false;
     end
 
-    function clear_trail()
-        set(trail, 'XData', nan, 'YData', nan, 'ZData', nan);
-        set(target_mark, 'XData', nan, 'YData', nan, 'ZData', nan);
+    function say(text, color)
+        status.Text = text;
+        status.FontColor = color;
+    end
+
+    function reset_view()
+        % the view the window opens with, also after zooming, panning or turning the 3D view
+        ax.CameraPositionMode = 'auto';
+        ax.CameraTargetMode = 'auto';
+        ax.CameraUpVectorMode = 'auto';
+        ax.CameraViewAngleMode = 'auto';
+        xlim(ax, [-1200 1200]); ylim(ax, [-1200 1200]); zlim(ax, [0 1700]);
+        view(ax, 135, 20);
+        camlight(lamp, 'headlight');
     end
 
     function simulink_on_off(on)
-        if on
-            sim_btn.Text = 'Stop Simulink model';
-            status.Text = 'Starting the Simscape model. Mechanics Explorer opens in its own window.';
-            status.FontColor = [0 0 0];
-            drawnow;
+        if ~on
+            stop_model();
+            say('The Simscape model was stopped.', black);
+            return
+        end
+        say('Starting the Simscape model, the first start can take half a minute...', black);
+        sim_starting = true;
+        drawnow;
+        if ~isvalid(fig), return; end
+        try
             if ~bdIsLoaded(model)
                 load_system(model);
                 model_loaded_here = true;
             end
-            for k = 1:4
-                set_param([model '/theta' num2str(k)], 'Value', num2str(theta(k), 8));
-            end
+            model_settings = {get_param(model, 'StopTime'), get_param(model, 'EnablePacing')};
+            send_angles();
             % no stop time, and pacing on so the model runs in real time
             set_param(model, 'StopTime', 'inf', 'EnablePacing', 'on', 'PacingRate', '1');
             set_param(model, 'SimulationCommand', 'start');
+            t = tic;
+            while ~any(strcmp(get_param(model, 'SimulationStatus'), {'running', 'stopped'})) && toc(t) < 120
+                pause(0.2);
+            end
+            started = strcmp(get_param(model, 'SimulationStatus'), 'running');
+            why = 'see the Diagnostic Viewer in Simulink';
+        catch err
+            started = false;
+            why = err.message;
+        end
+        sim_starting = false;
+        if ~isvalid(fig) || strcmp(sim_switch.Value, 'Off')
+            stop_model();                   % closed or switched off while starting
+            return
+        end
+        if started
+            send_angles();                  % the arm may have moved while the model started
+            say('The Simscape model is running and follows every move made in this window.', green);
         else
+            sim_switch.Value = 'Off';
             stop_model();
-            sim_btn.Text = 'Run Simulink model';
+            say(['The Simscape model did not start: ' why], red);
         end
     end
 
@@ -269,20 +390,40 @@ if start_demo, play_demo(); end
         running = bdIsLoaded(model) && any(strcmp(get_param(model, 'SimulationStatus'), {'running', 'paused'}));
     end
 
+    function send_angles()
+        for k = 1:4
+            set_param([model '/theta' num2str(k)], 'Value', num2str(theta(k), 8));
+        end
+    end
+
     function stop_model()
-        % 'stop' only asks Simulink to stop, so wait until it has really stopped
-        if ~model_running(), return; end
-        set_param(model, 'SimulationCommand', 'stop');
+        % 'stop' only asks Simulink to stop, so wait until it has really stopped,
+        % then give the model back its own stop time and pacing
+        if ~bdIsLoaded(model), return; end
         t = tic;
         while ~strcmp(get_param(model, 'SimulationStatus'), 'stopped') && toc(t) < 20
-            pause(0.1);
+            try
+                set_param(model, 'SimulationCommand', 'stop');
+            catch
+                % still compiling, it cannot stop yet, try again
+            end
+            pause(0.2);
+        end
+        if ~isempty(model_settings)
+            set_param(model, 'StopTime', model_settings{1}, 'EnablePacing', model_settings{2});
+            model_settings = {};
         end
     end
 
     function close_window()
-        stop_model();
-        % the model was only changed by this window (angles, stop time), so it is not saved
-        if model_loaded_here && bdIsLoaded(model), close_system(model, 0); end
+        cancel_move();
+        try
+            stop_model();
+            % the model was only changed by this window (angles, stop time), so it is not saved
+            if model_loaded_here && bdIsLoaded(model), close_system(model, 0); end
+        catch err
+            fprintf('Simulink: %s\n', err.message);
+        end
         delete(fig);
     end
 end
