@@ -2,7 +2,7 @@
 
 **Author:** MohammadMahdi Faraji
 
-You give the arm a point in space, for example "30 cm above the table, 80 cm in front of you, tool pointing down", and it works out how far each of its four joints has to turn to put the tool tip exactly there. This repository holds the whole chain behind that: the arm designed in SolidWorks, the math that connects joint angles to the tool position, a Simscape model built from the same CAD files, and a window where you can move the arm with sliders or by typing a target.
+You give the arm a point in space, for example "30 cm above the table, 80 cm in front of you, tool pointing down", and it works out how far each of its four joints has to turn to put the tool tip exactly there. This repository holds the whole chain behind that: the arm modelled in SolidWorks, the math that connects joint angles to the tool position, a Simscape model built from the same CAD files, and a window where you can move the arm with sliders or by typing a target.
 
 <p align="center"><img src="media/line_demo.gif" width="70%"></p>
 <p align="center"><sub>The tool tip draws a square on a table while the tool keeps pointing straight down. Every point of every side is solved with inverse kinematics.</sub></p>
@@ -16,6 +16,8 @@ A robot arm is a chain of links joined by motors. The motors only know angles: "
 
 This started as my course project. The first version had the same parts: the CAD model, a Simscape model and a GUI with sliders. But when I checked it against the 3D model, the numbers in the math did not match the real arm, and the inverse kinematics did not agree with the forward kinematics. I rebuilt it so that every number can be traced back to the CAD file, and every part checks the others. [docs/changes_from_course_project.md](docs/changes_from_course_project.md) lists what was wrong in the first version.
 
+The shape and the dimensions of the arm are the result of searching online. I looked at pictures and numbers of different industrial arms and other sources, put together what I found, and changed it while drawing the parts in SolidWorks.
+
 ## At a glance
 
 | | |
@@ -23,7 +25,7 @@ This started as my course project. The first version had the same parts: the CAD
 | Arm | 4 revolute joints: base, shoulder, elbow, wrist |
 | Size | shoulder 496 mm above the floor, links 500, 451 and 195 mm |
 | Reach | up to 1146 mm from the base axis, up to 1642 mm high |
-| CAD | SolidWorks (5 parts, 1 assembly) |
+| CAD | SolidWorks (5 parts, 1 assembly), shape and dimensions from online sources, modified |
 | Software | MATLAB R2024b, Simulink, Simscape Multibody, Simscape Multibody Link 7.4 |
 | Inverse kinematics | closed form (geometric), tool angle as input, elbow up or down |
 | Checks | joint limits, floor, base of the arm |
@@ -146,10 +148,10 @@ legacy/         the original course files
 - **The joint limits are not from real hardware.** They are the slider ranges of the first version. This arm has never been built, so it has no real motors to take limits from.
 - **The motion is kinematics only.** Paths have no timing, speed or torque limits. The Simscape model computes the torques it would need, but nothing here checks them against real motors.
 
+## Thanks
+
+- I used an AI assistant to help review and rewrite the code, to clean it up and prepare it for publishing.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
-
-## Acknowledgements
-
-I used an AI assistant to help review and rewrite the code, to clean it up and prepare it for publishing.
