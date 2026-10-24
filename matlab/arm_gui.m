@@ -16,11 +16,11 @@ theta = p.home;
 busy = false;                   % true while the arm is moving, the sliders wait
 
 % ---------------- window
-fig = uifigure('Name', '4-DOF robot arm  (MohammadMahdi Faraji)', 'Position', [60 40 1200 800], ...
+fig = uifigure('Name', '4-DOF robot arm  (MohammadMahdi Faraji)', 'Position', [40 40 1400 790], ...
     'CloseRequestFcn', @(~, ~) close_window());
 main = uigridlayout(fig, [2 2]);
-main.ColumnWidth = {'1x', 390};
-main.RowHeight = {48, '1x'};
+main.ColumnWidth = {'1x', 540};
+main.RowHeight = {40, '1x'};
 
 % title bar with my name and email
 top = uigridlayout(main, [1 2], 'BackgroundColor', [0.13 0.24 0.40], 'Padding', [16 6 16 6]);
@@ -30,8 +30,11 @@ uilabel(top, 'Text', '4-DOF robot arm: forward and inverse kinematics', ...
 uilabel(top, 'Text', 'MohammadMahdi Faraji   |   mmyasharfaraji@gmail.com', ...
     'FontSize', 15, 'FontColor', [1 1 1], 'HorizontalAlignment', 'right');
 
-ax = uiaxes(main);
-ax.Layout.Row = 2;  ax.Layout.Column = 1;
+% left: the 3D view, with the buttons under it
+left = uigridlayout(main, [2 1], 'Padding', [20 0 0 0]);     % room on the left for the z label
+left.Layout.Row = 2;  left.Layout.Column = 1;
+left.RowHeight = {'1x', 34};
+ax = uiaxes(left);
 patch(ax, [-1200 1200 1200 -1200], [-1200 -1200 1200 1200], [0 0 0 0], [0.94 0.94 0.94], ...
     'EdgeColor', 'none', 'FaceLighting', 'none');                   % floor
 h = draw_arm(ax, parts, theta);
@@ -39,9 +42,9 @@ xlim(ax, [-1200 1200]); ylim(ax, [-1200 1200]); zlim(ax, [0 1700]);
 trail = plot3(ax, nan, nan, nan, 'r-', 'LineWidth', 1.5);
 target_mark = plot3(ax, nan, nan, nan, 'kx', 'MarkerSize', 14, 'LineWidth', 2);
 
-side = uigridlayout(main, [5 1]);
+side = uigridlayout(main, [4 1], 'RowSpacing', 8);
 side.Layout.Row = 2;  side.Layout.Column = 2;
-side.RowHeight = {220, 92, 240, 40, '1x'};
+side.RowHeight = {205, 72, 176, '1x'};
 
 % joint sliders
 jp = uipanel(side, 'Title', 'Joint angles (deg)');
@@ -63,13 +66,13 @@ end
 % where the tool tip is
 tp = uipanel(side, 'Title', 'Tool tip (base frame)');
 tg = uigridlayout(tp, [1 1]);
-tip_label = uilabel(tg, 'FontName', 'Consolas', 'FontSize', 13);
+tip_label = uilabel(tg, 'FontName', 'Consolas', 'FontSize', 12);
 
 % inverse kinematics
 kp = uipanel(side, 'Title', 'Go to a point (inverse kinematics)');
-kg = uigridlayout(kp, [5 4]);
-kg.ColumnWidth = {55, '1x', 55, '1x'};
-kg.RowHeight = {22, 22, 22, 30, '1x'};
+kg = uigridlayout(kp, [4 6], 'RowSpacing', 8);
+kg.ColumnWidth = {50, '1x', 50, '1x', 50, '1x'};
+kg.RowHeight = {22, 22, 26, '1x'};
 uilabel(kg, 'Text', 'x (mm)');  ex = uieditfield(kg, 'numeric', 'Value', 700);
 uilabel(kg, 'Text', 'y (mm)');  ey = uieditfield(kg, 'numeric', 'Value', 300);
 uilabel(kg, 'Text', 'z (mm)');  ez = uieditfield(kg, 'numeric', 'Value', 400);
@@ -77,22 +80,45 @@ uilabel(kg, 'Text', sprintf('%c (deg)', 966));  ephi = uieditfield(kg, 'numeric'
 uilabel(kg, 'Text', 'elbow');   elbow_box = uidropdown(kg, 'Items', {'up', 'down'});
 uilabel(kg, 'Text', 'path');    path_box = uidropdown(kg, 'Items', {'joint space', 'straight line'});
 move_btn = uibutton(kg, 'Text', 'Move', 'ButtonPushedFcn', @(~, ~) move_to_target());
-move_btn.Layout.Row = 4;  move_btn.Layout.Column = [1 4];
+move_btn.Layout.Row = 3;  move_btn.Layout.Column = [1 6];
 status = uilabel(kg, 'Text', 'Move the sliders, or type a point and press Move.', 'WordWrap', 'on');
-status.Layout.Row = 5;  status.Layout.Column = [1 4];
+status.Layout.Row = 4;  status.Layout.Column = [1 6];
 
-% buttons
-bg = uigridlayout(side, [1 3], 'Padding', [0 0 0 0]);
+% what this project is, step by step, and how to use the window
+info = uitabgroup(side);
+about_tab = uitab(info, 'Title', 'About this project');
+help_tab = uitab(info, 'Title', 'How to use');
+uitextarea(uigridlayout(about_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off', 'Value', {
+    'From a 3D drawing to a moving arm, with a check at every step:'
+    ['1. SolidWorks: I drew the five parts and joined them in an assembly. The shape and ' ...
+     'the dimensions come from searching online, changed while drawing.']
+    '2. Simscape Multibody Link exported the assembly (an XML file and STEP files).'
+    '3. DH table: read from the joint axes in that export, four numbers per joint.'
+    '4. Forward kinematics: joint angles to tool tip (the sliders).'
+    ['5. Inverse kinematics: target point to joint angles, solved with geometry (Go to a point). ' ...
+     'Targets the arm cannot reach safely are refused, with the reason.']
+    ['6. Simscape: smimport built a Simulink model from the same export. ' ...
+     '"Run Simulink model" starts it, and it follows this window.']
+    '7. Checks: the CAD file, the Simscape sensor and the math agree within 0.01 mm.'
+    ['The arm in the plot is drawn with the real CAD parts. It started as a course project and ' ...
+     'was rebuilt so that every number comes from the CAD file.']
+    });
+uitextarea(uigridlayout(help_tab, [1 1], 'Padding', [0 0 0 0]), 'Editable', 'off', 'Value', {
+    [sprintf('%c', 966) ' = angle of the tool from the horizontal: 0 is level, -90 is pointing down.']
+    'Joint space: every joint turns evenly, and the tip moves on a curve.'
+    'Straight line: inverse kinematics at 60 points of the line, so the tip moves straight.'
+    'Elbow up or down: the two ways the arm can reach the same point.'
+    'Red line: the path of the tip. Drag the 3D view to turn it.'
+    });
+
+% buttons under the 3D view
+bg = uigridlayout(left, [1 4], 'Padding', [0 0 0 0]);
+bg.Layout.Row = 2;
+bg.ColumnWidth = {110, 170, 110, '1x'};
 uibutton(bg, 'Text', 'Home', 'ButtonPushedFcn', @(~, ~) go_home());
 sim_btn = uibutton(bg, 'state', 'Text', 'Run Simulink model', ...
     'ValueChangedFcn', @(s, ~) simulink_on_off(s.Value));
 uibutton(bg, 'Text', 'Clear path', 'ButtonPushedFcn', @(~, ~) clear_trail());
-
-uilabel(side, 'WordWrap', 'on', 'VerticalAlignment', 'top', 'FontColor', [0.4 0.4 0.4], 'Text', ...
-    [sprintf('%c', 966) ' = tool angle from the horizontal (0 level, -90 pointing down). ' ...
-    '"joint space": every joint turns evenly and the tip moves on a curve. ' ...
-    '"straight line": inverse kinematics at 60 points of the line. ' ...
-    'Red = path of the tip. Drag the 3D view to turn it.']);
 
 show();
 
@@ -121,7 +147,7 @@ show();
             note = ['not allowed: ' pose_msg];
             tip_label.FontColor = [0.75 0 0];
         end
-        tip_label.Text = sprintf('x = %7.1f   y = %7.1f   z = %7.1f mm\n%c = %6.1f deg       elbow %s\n%s', ...
+        tip_label.Text = sprintf('x = %7.1f  y = %7.1f  z = %7.1f mm    %c = %6.1f deg  elbow %s\n%s', ...
             T(1:3, 4), 966, phi, elbow, note);
         for k = 1:4
             if ~isequal(sliders(k), source), sliders(k).Value = theta(k); end

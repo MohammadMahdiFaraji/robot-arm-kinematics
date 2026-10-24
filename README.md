@@ -100,6 +100,7 @@ If you only interpolate the angles, the tip moves on a curve, because every join
 - type a target point and a tool angle, choose elbow up or down, and press Move
 - choose a joint space path (curved) or a straight line; the red line shows the path of the tip
 - press "Run Simulink model": the Simscape model starts in Mechanics Explorer and follows every move made in the window
+- read "About this project" at the bottom right: the whole project, from SolidWorks to the checks, in seven short steps
 
 If a target can't be reached, the window says why, for example "joint 3 would need -158.9 deg (limit -150 to 75)".
 
