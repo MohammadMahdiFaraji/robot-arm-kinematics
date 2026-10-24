@@ -1,0 +1,25 @@
+Kinematics check, 2026-10-24
+
+1) SolidWorks pose [-2.928 47.676 -13.256 -33.193]
+   tip from CAD          [902.279 -56.160 1124.989] mm
+   forward_kinematics    [902.276 -56.162 1124.995] mm   difference 0.007 mm
+
+2) Simscape model vs forward_kinematics
+   theta = [0 45 -15 -30]                     Simscape [  939.46   -10.00  1075.24]  FK [  939.46   -10.00  1075.24]  diff 0.0019 mm
+   theta = [-2.928 47.676 -13.256 -33.193]    Simscape [  902.28   -56.16  1124.99]  FK [  902.28   -56.16  1124.99]  diff 0.0019 mm
+   theta = [0 0 0 0]                          Simscape [ 1146.38   -10.00   496.00]  FK [ 1146.38   -10.00   496.00]  diff 0.0019 mm
+   theta = [90 30 -60 20]                     Simscape [   10.00  1015.96   486.45]  FK [   10.00  1015.96   486.45]  diff 0.0019 mm
+   theta = [-120 120 -100 -45]                Simscape [ -184.10  -298.88  1000.98]  FK [ -184.10  -298.88  1000.98]  diff 0.0019 mm
+   theta = [45 -10 40 -80]                    Simscape [  720.30   706.15   485.49]  FK [  720.30   706.16   485.49]  diff 0.0019 mm
+   theta = [170 160 -140 60]                  Simscape [   13.38     7.79  1013.43]  FK [   13.38     7.79  1013.43]  diff 0.0019 mm
+   theta = [-60 75 -150 70]                   Simscape [  211.59  -386.48   525.97]  FK [  211.59  -386.48   525.97]  diff 0.0019 mm
+   largest difference: 0.0019 mm
+
+3) IK round trip: 20000 random poses, 21500 IK solutions within the limits
+   largest position error: 1.3e-12 mm
+
+4) targets that must be refused
+   [1500 0 500]     phi    0: ok = 0 (the target is out of reach)
+   [3 2 600]        phi    0: ok = 0 (the target is too close to the base axis)
+   [700 0 -100]     phi  -90: ok = 0 (the arm would go below the floor)
+   [250 0 150]      phi  -90: ok = 0 (the tool would hit the base of the arm)
