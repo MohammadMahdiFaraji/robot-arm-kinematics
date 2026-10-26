@@ -85,7 +85,7 @@ Then `check_pose.m` makes sure the answer is allowed: every joint stays within i
 
 ### 4. Straight lines
 
-If you only interpolate the angles, the tip moves on a curve. For a straight line, `plan_line.m` solves the inverse kinematics at 40 to 60 points on the line. It stops if a joint would jump between two neighbouring points, which happens near a singular pose (for example right above the base axis).
+If you only interpolate the angles, the tip moves on a curve. For a straight line, `plan_line.m` solves the inverse kinematics at many points along the line (60 by default, and about one point every 6 mm in the window). It stops if a joint would jump between two neighbouring points, which happens near a singular pose (for example right above the base axis).
 
 <p align="center"><img src="results/figures/line_demo_joints.png" width="85%"></p>
 <p align="center"><sub>Joint angles while drawing the square: a joint space move to the first corner, then the four sides. To keep the tip on a straight line, the angles have to change in a non-linear way.</sub></p>
